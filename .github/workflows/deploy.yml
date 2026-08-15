@@ -210,16 +210,10 @@ jobs:
         env:
           TOK: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          # ⚠️ ПРОБЕЛ ПОСЛЕ ДВОЕТОЧИЯ. Cloudflare отдаёт ФОРМАТИРОВАННЫЙ JSON: "success": true. Точная
-          # подстрока '"success":true' не совпадала НИКОГДА, и успешное создание проекта уходило в else
-          # с «Could not create or confirm». Пока проекты создавал заранее ensure-reserve-pool, деплой
-          # попадал в ветку «already exists» и баг был не виден; на первом деплое НОВОГО проекта (команды
-          # пересозданы на неугадываемых адресах) падали все — домен не привязывался, поддомен отдавал
-          # NXDOMAIN. Сверяем регуляркой, терпимой к пробелам.
           BODY="$(curl -sS -X POST "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/pages/projects" \
             -H "Authorization: Bearer $TOK" -H "Content-Type: application/json" \
             --data "{\"name\":\"${CF_PROJECT}\",\"production_branch\":\"main\"}")"
-          if printf '%s' "$BODY" | grep -Eq '"success":[[:space:]]*true'; then
+          if printf '%s' "$BODY" | grep -q '"success":true'; then
             echo "::notice::Pages project created: ${CF_PROJECT}"
           elif printf '%s' "$BODY" | grep -Eqi 'already exists|8000001'; then
             echo "::notice::Pages project already exists: ${CF_PROJECT}"
@@ -243,7 +237,7 @@ jobs:
           DOMAIN="${CF_PROJECT}.hackonvibe.com"
           curl -s -X POST "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/pages/projects/${CF_PROJECT}/domains" \
             -H "Authorization: Bearer $TOK" -H "Content-Type: application/json" \
-            --data "{\"name\":\"${DOMAIN}\"}" | grep -Eq '"success":[[:space:]]*true' \
+            --data "{\"name\":\"${DOMAIN}\"}" | grep -q '"success":true' \
             && echo "::notice::домен привязан к проекту → https://$DOMAIN" \
             || echo "::notice::домен уже привязан к проекту (норма при повторном деплое)"
       - name: Ensure DNS record (UPSERT CNAME -> pages.dev — для всех)
@@ -261,13 +255,13 @@ jobs:
           if [ -n "$ID" ]; then
             curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/dns_records/${ID}" \
               -H "Authorization: Bearer $TOK" -H "Content-Type: application/json" --data "$DATA" \
-              | grep -Eq '"success":[[:space:]]*true' \
+              | grep -q '"success":true' \
               && echo "::notice::DNS обновлён -> ${CF_PROJECT}.pages.dev" \
               || echo "::warning::DNS update не прошёл (нет Zone:DNS:Edit?)"
           else
             curl -s -X POST "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/dns_records" \
               -H "Authorization: Bearer $TOK" -H "Content-Type: application/json" --data "$DATA" \
-              | grep -Eq '"success":[[:space:]]*true' \
+              | grep -q '"success":true' \
               && echo "::notice::DNS CNAME создан -> ${NAME} (домен станет Active)" \
               || echo "::warning::DNS create не прошёл (нет Zone:DNS:Edit?)"
           fi
