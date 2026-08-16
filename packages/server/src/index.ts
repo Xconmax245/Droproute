@@ -249,27 +249,13 @@ app.post('/api/events', async (request, reply) => {
 
 // GET /api/scores?appId=&includeSeeded=
 app.get('/api/scores', async (request, reply) => {
-  const { appId, includeSeeded } = request.query as { appId?: string; includeSeeded?: string };
-  if (!appId) return reply.status(400).send({ error: 'appId query param required' });
-
   // Get all referral links for this app
-  let linkQuery = supabase
+  const { data: validLinks } = await supabase
     .from('referral_links')
-    .select('code, source, metadata')
+    .select('code, source, campaign')
     .eq('app_id', appId);
 
-  const { data: links } = await linkQuery;
-
-  if (!links || links.length === 0) {
-    return reply.send({ scores: [] });
-  }
-
-  // Filter links based on seeded status
-  const validLinks = includeSeeded === 'true' 
-    ? links 
-    : links.filter(l => !(l.metadata as any)?.isSeeded);
-
-  if (validLinks.length === 0) {
+  if (!validLinks || validLinks.length === 0) {
     return reply.send({ scores: [] });
   }
 
@@ -281,10 +267,7 @@ app.get('/api/scores', async (request, reply) => {
     .select('referral_code, event_name, metadata')
     .in('referral_code', codes);
 
-  // Filter events based on seeded status
-  const validEvents = includeSeeded === 'true'
-    ? (events ?? [])
-    : (events ?? []).filter(e => !(e.metadata as any)?.isSeeded);
+  const validEvents = events ?? [];
 
   const eventsByCode: Record<string, Set<string>> = {};
   for (const e of validEvents) {
@@ -342,11 +325,11 @@ app.get('/api/scores', async (request, reply) => {
 const MIN_EVENTS_FOR_RECOMMENDATION = 5;
 
 app.post('/api/recommendation', async (request, reply) => {
-  const { appId, includeSeeded } = request.query as { appId?: string; includeSeeded?: string };
+  const { appId } = request.query as { appId?: string };
   if (!appId) return reply.status(400).send({ error: 'appId query param required' });
 
   // Get scores
-  const scoresRes = await fetch(`${env.SERVER_PUBLIC_URL}/api/scores?appId=${appId}&includeSeeded=${includeSeeded ?? 'false'}`);
+  const scoresRes = await fetch(`${env.SERVER_PUBLIC_URL}/api/scores?appId=${appId}`);
   const { scores } = (await scoresRes.json()) as { scores: any[] };
 
   const totalEvents = scores.reduce((acc: number, s: any) => acc + s.installs + s.activations, 0);
@@ -452,69 +435,7 @@ app.post('/api/apps', async (request, reply) => {
   return reply.status(201).send(data);
 });
 
-// POST /api/seed — populate judge mode data
-app.post('/api/seed', async (request, reply) => {
-  const { appId } = request.query as { appId?: string };
-  if (!appId) return reply.status(400).send({ error: 'appId query param required' });
 
-  // Check if already seeded
-  const { count } = await supabase
-    .from('events')
-    .select('*', { count: 'exact', head: true })
-    .eq('app_id', appId)
-    .contains('metadata', { isSeeded: true });
-
-  if (count && count > 0) {
-    return reply.send({ ok: true, message: 'Already seeded' });
-  }
-
-  // Create some realistic seeded sources and events
-  const sources = [
-    { name: 'twitter_campaign_fall', installs: 120, activations: 32 },
-    { name: 'tiktok_influencer_x', installs: 450, activations: 215 },
-    { name: 'organic_website', installs: 50, activations: 12 },
-    { name: 'product_hunt_launch', installs: 890, activations: 712 }
-  ];
-
-  for (const src of sources) {
-    const code = crypto.randomBytes(5).toString('hex');
-    await supabase.from('referral_links').insert({
-      app_id: appId,
-      source: src.name,
-      code,
-      metadata: { isSeeded: true }
-    });
-
-    const eventsToInsert = [];
-    
-    // Add installs
-    for (let i = 0; i < src.installs; i++) {
-      eventsToInsert.push({
-        app_id: appId,
-        referral_code: code,
-        event_name: 'app_open',
-        metadata: { isSeeded: true }
-      });
-    }
-    // Add activations
-    for (let i = 0; i < src.activations; i++) {
-      eventsToInsert.push({
-        app_id: appId,
-        referral_code: code,
-        event_name: 'completed_onboarding',
-        metadata: { isSeeded: true }
-      });
-    }
-
-    // Chunk the inserts to avoid payload limits
-    for (let i = 0; i < eventsToInsert.length; i += 500) {
-      const chunk = eventsToInsert.slice(i, i + 500);
-      await supabase.from('events').insert(chunk);
-    }
-  }
-
-  return reply.send({ ok: true, message: 'Seeded successfully' });
-});
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 

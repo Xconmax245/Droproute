@@ -58,7 +58,6 @@ function SparklesIcon() {
 export default function DashboardClient({ appId, initialScores, initialEvents }: Props) {
   const [events, setEvents] = useState<EventRow[]>(initialEvents);
   const [scores, setScores] = useState<Score[]>(initialScores);
-  const [isJudgeMode, setIsJudgeMode] = useState(false);
   const [aiText, setAiText] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -66,9 +65,9 @@ export default function DashboardClient({ appId, initialScores, initialEvents }:
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'open' | 'closed'>('connecting');
   const eventSource = useRef<EventSource | null>(null);
 
-  const refreshScores = useCallback(async (includeSeeded: boolean = isJudgeMode) => {
+  const refreshScores = useCallback(async () => {
     try {
-      const res = await fetch(`${SERVER_URL}/api/scores?appId=${appId}&includeSeeded=${includeSeeded}`);
+      const res = await fetch(`${SERVER_URL}/api/scores?appId=${appId}`);
       if (!res.ok) return;
       const data = await res.json();
       setScores(data.scores ?? []);
@@ -102,31 +101,19 @@ export default function DashboardClient({ appId, initialScores, initialEvents }:
 
       setEvents((prev) => [newEvent, ...prev].slice(0, 50));
       setEventCount((c) => c + 1);
-      // Pass the current judge mode explicitly
-      refreshScores(isJudgeMode);
+      refreshScores();
     };
 
     return () => {
       es.close();
     };
-  }, [appId, isJudgeMode, refreshScores]);
-
-  const handleJudgeModeToggle = async (checked: boolean) => {
-    setIsJudgeMode(checked);
-    if (checked) {
-      // Trigger the server seed script
-      try {
-        await fetch(`${SERVER_URL}/api/seed?appId=${appId}`, { method: 'POST' });
-      } catch (e) {}
-    }
-    refreshScores(checked);
-  };
+  }, [appId, refreshScores]);
 
   const handleGenerateRecommendation = async () => {
     setAiLoading(true);
     setAiText(null);
     try {
-      const res = await fetch(`${SERVER_URL}/api/recommendation?appId=${appId}&includeSeeded=${isJudgeMode}`, {
+      const res = await fetch(`${SERVER_URL}/api/recommendation?appId=${appId}`, {
         method: 'POST',
       });
       const data = await res.json();
@@ -155,18 +142,6 @@ export default function DashboardClient({ appId, initialScores, initialEvents }:
             dr<span className="wordmark-dot" />proute
           </a>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <label
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontFamily: 'var(--font-body)', fontWeight: 600, color: 'var(--ink-muted)' }}
-            >
-              <input
-                id="judge-mode-toggle"
-                type="checkbox"
-                checked={isJudgeMode}
-                onChange={(e) => handleJudgeModeToggle(e.target.checked)}
-                style={{ accentColor: 'var(--accent)', width: '16px', height: '16px', cursor: 'pointer' }}
-              />
-              Judge Mode
-            </label>
             <div className={`status-pill ${connectionStatus !== 'open' ? 'offline' : ''}`}>
               <span className={`live-dot ${connectionStatus !== 'open' ? 'offline' : ''}`} />
               {connectionStatus === 'open' 
@@ -349,12 +324,6 @@ export default function DashboardClient({ appId, initialScores, initialEvents }:
         )}
       </div>
 
-      {/* Judge Mode badge */}
-      {isJudgeMode && (
-        <div className="judge-badge" role="status" aria-live="polite">
-          ⚠️ Showing seeded demo data
-        </div>
-      )}
     </>
   );
 }
