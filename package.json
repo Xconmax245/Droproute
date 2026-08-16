@@ -1,0 +1,16 @@
+{
+  "name": "droproute",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "dev": "pnpm -r run dev",
+    "build": "pnpm -r run build",
+    "seed:judge-mode": "pnpm --filter seed run judge-mode"
+  },
+  "devDependencies": {
+    "pg": "^8.23.0"
+  }
+}
