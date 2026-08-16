@@ -126,7 +126,7 @@ export default function DashboardClient({ appId, initialScores, initialEvents }:
   };
 
   const handleCopy = () => {
-    navigator.clipboard.writeText('npx droproute inject');
+    navigator.clipboard.writeText('node packages/cli/dist/index.js inject');
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -180,7 +180,7 @@ export default function DashboardClient({ appId, initialScores, initialEvents }:
                 id="copy-command-chip"
                 title="Copy to clipboard"
               >
-                <span>npx droproute inject</span>
+                <span>node packages/cli/dist/index.js inject</span>
                 <span className="copy-btn">
                   {copied ? '✓' : <CopyIcon />}
                 </span>
