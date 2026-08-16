@@ -1,0 +1,12 @@
+node_modules
+dist
+.env
+.env.local
+.next
+*.log
+.DS_Store
+demo-app
+demo-app-v2
+demo-app-v3
+demo-app-v2-standalone
+expo-template-*.tgz
