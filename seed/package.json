@@ -1,0 +1,17 @@
+{
+  "name": "seed",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "judge-mode": "ts-node generate.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.3",
+    "dotenv": "^16.4.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "@types/node": "^20.11.0",
+    "ts-node": "^10.9.2"
+  }
+}
