@@ -8,29 +8,25 @@
 1. [Executive Summary](#executive-summary)
 2. [The Core Problem](#the-core-problem)
 3. [The DropRoute Solution](#the-droproute-solution)
-4. [System Architecture](#system-architecture)
-5. [Component Deep Dive: CLI](#component-deep-dive-cli)
-6. [Component Deep Dive: Codemod Engine](#component-deep-dive-codemod-engine)
-7. [Component Deep Dive: Server Engine](#component-deep-dive-server-engine)
-8. [Component Deep Dive: Dashboard](#component-deep-dive-dashboard)
-9. [Database Schema and RLS](#database-schema-and-rls)
-10. [AI Integration Details](#ai-integration-details)
-11. [Installation Guide](#installation-guide)
-12. [Usage Guide](#usage-guide)
-13. [Scoring Math and Algorithms](#scoring-math-and-algorithms)
-14. [Data Structures](#data-structures)
-15. [Security Considerations](#security-considerations)
-16. [Future Roadmap](#future-roadmap)
-17. [Frequently Asked Questions](#frequently-asked-questions)
-18. [Troubleshooting Guide](#troubleshooting-guide)
-19. [API Reference](#api-reference)
-20. [Glossary](#glossary)
-21. [License](#license)
-
-
-
-
-
+4. [Business Model & Pricing](#business-model--pricing)
+5. [System Architecture](#system-architecture)
+6. [Component Deep Dive: CLI](#component-deep-dive-cli)
+7. [Component Deep Dive: Codemod Engine](#component-deep-dive-codemod-engine)
+8. [Component Deep Dive: Server Engine](#component-deep-dive-server-engine)
+9. [Component Deep Dive: Dashboard](#component-deep-dive-dashboard)
+10. [Database Schema and RLS](#database-schema-and-rls)
+11. [AI Integration Details](#ai-integration-details)
+12. [Installation Guide](#installation-guide)
+13. [Usage Guide](#usage-guide)
+14. [Scoring Math and Algorithms](#scoring-math-and-algorithms)
+15. [Data Structures](#data-structures)
+16. [Security Considerations](#security-considerations)
+17. [Future Roadmap](#future-roadmap)
+18. [Frequently Asked Questions](#frequently-asked-questions)
+19. [Troubleshooting Guide](#troubleshooting-guide)
+20. [API Reference](#api-reference)
+21. [Glossary](#glossary)
+22. [License](#license)
 
 
 
@@ -69,6 +65,19 @@ DropRoute takes a fundamentally different approach. It uses a **Compiler-First I
 2. **Semantic Understanding:** It traverses the tree to find the default export function (whether it is an arrow function or a named function declaration).
 3. **Safe Modification:** It safely injects the useEffect hook required for Expo Linking directly into the component body, ensuring all braces, imports, and scopes remain perfectly valid.
 4. **Live Validation:** The CLI simulates the build before committing changes, using a dry-run phase to ensure your app will still compile.
+
+
+
+
+
+
+
+## Business Model & Pricing
+DropRoute operates on a freemium SaaS model designed to scale with your app's growth, providing accessible attribution for indie hackers while offering enterprise-grade analytics for established startups.
+
+- **Free Tier:** Up to 1,000 tracked events per month. Includes standard AST CLI injection, basic attribution tracking (Installs & Activations), and 24-hour data retention. Perfect for hackathons and early-stage MVP validation.
+- **Pro Tier ($19/mo):** Up to 50,000 tracked events per month. Unlocks the AI-powered Growth Recommendation Engine (Claude 3.5 Sonnet), real-time SSE dashboard streaming, unlimited data retention, and custom domain linking.
+- **Scale Tier ($49/mo):** Up to 500,000 tracked events per month. Includes multi-step custom funnel tracking (e.g., checkout completion, subscription started), automated Apple AASA and Android AssetLinks generation, and priority email support.
 
 
 
