@@ -53,7 +53,7 @@ export default function DocsPage() {
             </p>
             
             <div className="command-chip" style={{ marginBottom: '48px', display: 'flex' }}>
-              <span>npx droproute inject</span>
+              <span>node packages/cli/dist/index.js inject</span>
             </div>
 
             <h2 id="dashboard" style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '24px', color: 'var(--ink)', marginBottom: '16px' }}>Viewing the Dashboard</h2>

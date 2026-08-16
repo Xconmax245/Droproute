@@ -58,7 +58,7 @@ export default async function DashboardPage() {
               Run the command below, then open a generated referral link on a device.
             </p>
             <div className="command-chip">
-              <span>npx droproute inject</span>
+              <span>node packages/cli/dist/index.js inject</span>
             </div>
           </div>
         </div>
