@@ -156,8 +156,7 @@ export default function DashboardClient({ appId, initialScores, initialEvents }:
       {/* Main content */}
       <div className="page-shell" style={{ paddingTop: '40px', paddingBottom: '80px' }}>
 
-        {/* Empty state — only shown when no data and no judge mode seeded data */}
-        {!hasData && !isJudgeMode && (
+        {!hasData && (
           <div style={{ marginTop: '60px', display: 'flex', justifyContent: 'center' }}>
             <div className="empty-state-card" style={{ maxWidth: '520px' }}>
               <div className="fanned-chips" style={{ marginBottom: '8px' }}>
@@ -190,8 +189,7 @@ export default function DashboardClient({ appId, initialScores, initialEvents }:
           </div>
         )}
 
-        {/* Dashboard grid — shown when data exists or judge mode is on */}
-        {(hasData || isJudgeMode) && (
+        {hasData && (
           <div className="dashboard-grid">
             {/* Left column — leaderboard + AI */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
