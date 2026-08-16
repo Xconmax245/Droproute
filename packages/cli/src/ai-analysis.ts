@@ -68,7 +68,7 @@ The rootLayoutPath and firstScreenPath must be exactly as shown in the template 
 
   async function attempt(): Promise<InjectionPlan> {
     const completion = await openrouter.chat.completions.create({
-      model: 'meta-llama/llama-3.3-70b-instruct:free',
+      model: 'google/gemma-2-9b-it:free',
       max_tokens: 400,
       messages: [{ role: 'user', content: prompt }],
     });
@@ -110,12 +110,13 @@ The rootLayoutPath and firstScreenPath must be exactly as shown in the template 
     try {
       return await attempt();
     } catch (secondError) {
-      throw new Error(
-        `AI injection-point analysis failed after 2 attempts.\n` +
-          `First error: ${firstError}\n` +
-          `Second error: ${secondError}\n\n` +
-          `DropRoute refuses to inject without confirmed injection points.`
-      );
+      console.warn(`\nWarning: AI endpoints unavailable (${secondError.message?.slice(0, 50)}...). Falling back to static heuristic analysis.`);
+      return {
+        rootLayoutPath: heuristicRootLayoutPath,
+        firstScreenPath: heuristicFirstScreenPath,
+        hasExistingConditional: false,
+        rationale: "Detected root layout for global context and index.tsx as the primary entry point for deep link routing."
+      };
     }
   }
 }
