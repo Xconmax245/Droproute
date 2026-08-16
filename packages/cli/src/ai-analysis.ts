@@ -110,7 +110,7 @@ The rootLayoutPath and firstScreenPath must be exactly as shown in the template 
     try {
       return await attempt();
     } catch (secondError) {
-      console.warn(`\nWarning: AI endpoints unavailable (${secondError.message?.slice(0, 50)}...). Falling back to static heuristic analysis.`);
+      console.warn(`\nWarning: AI endpoints unavailable (${(secondError as any).message?.slice(0, 50)}...). Falling back to static heuristic analysis.`);
       return {
         rootLayoutPath: heuristicRootLayoutPath,
         firstScreenPath: heuristicFirstScreenPath,
