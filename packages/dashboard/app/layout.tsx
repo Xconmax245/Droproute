@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import AosInit from './AosInit';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -22,12 +23,13 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <link
-          href="https://api.fontshare.com/v2/css?f[]=archivo@400,600&f[]=pilcrow-rounded@900&display=swap"
+          href="https://api.fontshare.com/v2/css?f[]=archivo@400,500,600&f[]=pilcrow-rounded@900&display=swap"
           rel="stylesheet"
         />
       </head>
       <body>
-        <div className="grid-overlay" aria-hidden="true" />
+        <div className="ambient-mesh" aria-hidden="true" />
+        <AosInit />
         {children}
       </body>
     </html>

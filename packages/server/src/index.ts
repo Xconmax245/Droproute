@@ -123,11 +123,12 @@ app.get('/r/:code', async (request, reply) => {
     .single();
 
   // Log the click as an event
+  const isSeeded = false; // Real clicks are never seeded
   await supabase.from('events').insert({
     app_id: link.app_id,
     referral_code: code,
     event_name: 'link_click',
-    metadata: { source: link.source, campaign: link.campaign },
+    metadata: { source: link.source, campaign: link.campaign, isSeeded },
   });
 
   broadcastEvent(link.app_id, {
@@ -135,9 +136,14 @@ app.get('/r/:code', async (request, reply) => {
     source: link.source,
     code,
     created_at: new Date().toISOString(),
+    isSeeded,
   });
 
-  const deepLink = `exp://172.20.10.3:8081/--/?ref=${code}&source=${encodeURIComponent(link.source)}${link.campaign ? `&campaign=${encodeURIComponent(link.campaign)}` : ''}`;
+  let baseUrl = appRow?.scheme ?? 'exp://127.0.0.1:8081';
+  if (!baseUrl.includes('://')) {
+    baseUrl += '://';
+  }
+  const deepLink = `${baseUrl}--/?ref=${code}&source=${encodeURIComponent(link.source)}${link.campaign ? `&campaign=${encodeURIComponent(link.campaign)}` : ''}`;
 
   // Serve a fallback page that tries to open the app then falls back gracefully
   const fallbackHtml = `<!DOCTYPE html>
@@ -149,26 +155,39 @@ app.get('/r/:code', async (request, reply) => {
     body { font-family: -apple-system, sans-serif; text-align: center; padding: 60px 24px; background: #fafaf9; color: #171A17; }
     h1 { font-size: 24px; font-weight: 700; }
     p { color: #5B615C; }
-    .badge { display: inline-block; background: #dcfce7; color: #22c55e; padding: 4px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; }
+    .badge { display: inline-block; background: #dcfce7; color: #22c55e; padding: 4px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; margin-bottom: 24px; }
+    input { width: 100%; max-width: 300px; padding: 12px; margin-bottom: 12px; border-radius: 8px; border: 1px solid #ccc; }
+    button { background: #22c55e; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; cursor: pointer; }
   </style>
   <script>
     window.location.href = ${JSON.stringify(deepLink)};
     setTimeout(() => {
       document.getElementById('fallback').style.display = 'block';
     }, 2000);
+    function manualRedirect() {
+      const manualUrl = document.getElementById('manual-url').value;
+      if (!manualUrl) return;
+      let baseUrl = manualUrl;
+      if (!baseUrl.endsWith('/')) baseUrl += '/';
+      const suffix = '--/?ref=${code}&source=${encodeURIComponent(link.source)}${link.campaign ? `&campaign=${encodeURIComponent(link.campaign)}` : ''}';
+      window.location.href = baseUrl + suffix;
+    }
   </script>
 </head>
 <body>
   <span class="badge">droproute</span>
   <h1>Opening the app...</h1>
   <p>If the app doesn't open automatically, make sure it's installed on your device.</p>
-  <div id="fallback" style="display:none">
-    <p>Couldn't open the app automatically. <a href="${deepLink}">Tap here to try again</a>.</p>
+  <div id="fallback" style="display:none; margin-top: 40px; padding-top: 40px; border-top: 1px solid #eaeaea;">
+    <p>Testing with Expo Go Tunnel? Paste your current Tunnel URL (exp://...) below:</p>
+    <input type="text" id="manual-url" placeholder="exp://..." />
+    <br/>
+    <button onclick="manualRedirect()">Test Deep Link</button>
   </div>
 </body>
 </html>`;
 
-  return reply.type('text/html').redirect(deepLink);
+  return reply.type('text/html').send(fallbackHtml);
 });
 
 // POST /api/events — record an attribution event from the injected SDK
@@ -228,31 +247,47 @@ app.post('/api/events', async (request, reply) => {
   return reply.send({ ok: true });
 });
 
-// GET /api/scores?appId= — activation score table per source
+// GET /api/scores?appId=&includeSeeded=
 app.get('/api/scores', async (request, reply) => {
-  const { appId } = request.query as { appId?: string };
+  const { appId, includeSeeded } = request.query as { appId?: string; includeSeeded?: string };
   if (!appId) return reply.status(400).send({ error: 'appId query param required' });
 
   // Get all referral links for this app
-  const { data: links } = await supabase
+  let linkQuery = supabase
     .from('referral_links')
-    .select('code, source')
+    .select('code, source, metadata')
     .eq('app_id', appId);
+
+  const { data: links } = await linkQuery;
 
   if (!links || links.length === 0) {
     return reply.send({ scores: [] });
   }
 
-  const codes = links.map((l) => l.code);
+  // Filter links based on seeded status
+  const validLinks = includeSeeded === 'true' 
+    ? links 
+    : links.filter(l => !(l.metadata as any)?.isSeeded);
+
+  if (validLinks.length === 0) {
+    return reply.send({ scores: [] });
+  }
+
+  const codes = validLinks.map((l) => l.code);
 
   // Get all events for these codes
   const { data: events } = await supabase
     .from('events')
-    .select('referral_code, event_name')
+    .select('referral_code, event_name, metadata')
     .in('referral_code', codes);
 
+  // Filter events based on seeded status
+  const validEvents = includeSeeded === 'true'
+    ? (events ?? [])
+    : (events ?? []).filter(e => !(e.metadata as any)?.isSeeded);
+
   const eventsByCode: Record<string, Set<string>> = {};
-  for (const e of events ?? []) {
+  for (const e of validEvents) {
     if (!e.referral_code) continue;
     if (!eventsByCode[e.referral_code]) {
       eventsByCode[e.referral_code] = new Set();
@@ -303,15 +338,15 @@ app.get('/api/scores', async (request, reply) => {
   return reply.send({ scores });
 });
 
-// POST /api/recommendation?appId= — AI recommendation (§5.2)
+// POST /api/recommendation?appId=&includeSeeded= — AI recommendation (§5.2)
 const MIN_EVENTS_FOR_RECOMMENDATION = 5;
 
 app.post('/api/recommendation', async (request, reply) => {
-  const { appId } = request.query as { appId?: string };
+  const { appId, includeSeeded } = request.query as { appId?: string; includeSeeded?: string };
   if (!appId) return reply.status(400).send({ error: 'appId query param required' });
 
   // Get scores
-  const scoresRes = await fetch(`${env.SERVER_PUBLIC_URL}/api/scores?appId=${appId}`);
+  const scoresRes = await fetch(`${env.SERVER_PUBLIC_URL}/api/scores?appId=${appId}&includeSeeded=${includeSeeded ?? 'false'}`);
   const { scores } = (await scoresRes.json()) as { scores: any[] };
 
   const totalEvents = scores.reduce((acc: number, s: any) => acc + s.installs + s.activations, 0);
@@ -415,6 +450,70 @@ app.post('/api/apps', async (request, reply) => {
     .single();
   if (error) return reply.status(500).send({ error: 'Database error' });
   return reply.status(201).send(data);
+});
+
+// POST /api/seed — populate judge mode data
+app.post('/api/seed', async (request, reply) => {
+  const { appId } = request.query as { appId?: string };
+  if (!appId) return reply.status(400).send({ error: 'appId query param required' });
+
+  // Check if already seeded
+  const { count } = await supabase
+    .from('events')
+    .select('*', { count: 'exact', head: true })
+    .eq('app_id', appId)
+    .contains('metadata', { isSeeded: true });
+
+  if (count && count > 0) {
+    return reply.send({ ok: true, message: 'Already seeded' });
+  }
+
+  // Create some realistic seeded sources and events
+  const sources = [
+    { name: 'twitter_campaign_fall', installs: 120, activations: 32 },
+    { name: 'tiktok_influencer_x', installs: 450, activations: 215 },
+    { name: 'organic_website', installs: 50, activations: 12 },
+    { name: 'product_hunt_launch', installs: 890, activations: 712 }
+  ];
+
+  for (const src of sources) {
+    const code = crypto.randomBytes(5).toString('hex');
+    await supabase.from('referral_links').insert({
+      app_id: appId,
+      source: src.name,
+      code,
+      metadata: { isSeeded: true }
+    });
+
+    const eventsToInsert = [];
+    
+    // Add installs
+    for (let i = 0; i < src.installs; i++) {
+      eventsToInsert.push({
+        app_id: appId,
+        referral_code: code,
+        event_name: 'app_open',
+        metadata: { isSeeded: true }
+      });
+    }
+    // Add activations
+    for (let i = 0; i < src.activations; i++) {
+      eventsToInsert.push({
+        app_id: appId,
+        referral_code: code,
+        event_name: 'completed_onboarding',
+        metadata: { isSeeded: true }
+      });
+    }
+
+    // Chunk the inserts to avoid payload limits
+    for (let i = 0; i < eventsToInsert.length; i += 500) {
+      const chunk = eventsToInsert.slice(i, i + 500);
+      await supabase.from('events').insert(chunk);
+    }
+  }
+
+  return reply.send({ ok: true, message: 'Seeded successfully' });
 });
 
 // ─── Start ────────────────────────────────────────────────────────────────────

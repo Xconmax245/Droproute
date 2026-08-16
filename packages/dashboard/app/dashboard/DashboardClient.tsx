@@ -63,20 +63,30 @@ export default function DashboardClient({ appId, initialScores, initialEvents }:
   const [aiLoading, setAiLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [eventCount, setEventCount] = useState(0);
+  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'open' | 'closed'>('connecting');
   const eventSource = useRef<EventSource | null>(null);
 
-  const refreshScores = useCallback(async () => {
+  const refreshScores = useCallback(async (includeSeeded: boolean = isJudgeMode) => {
     try {
-      const res = await fetch(`${SERVER_URL}/api/scores?appId=${appId}`);
+      const res = await fetch(`${SERVER_URL}/api/scores?appId=${appId}&includeSeeded=${includeSeeded}`);
       if (!res.ok) return;
       const data = await res.json();
       setScores(data.scores ?? []);
     } catch {}
-  }, [appId]);
+  }, [appId, isJudgeMode]);
+
+  // Load initial events for Judge Mode (mocking fetching seeded events from the DB)
+  // Since our /api/scores brings seeded scores, we could optionally fetch seeded events.
+  // For now, we will just let the scores update. Live events don't get seeded retroactively via SSE.
+  // We'll rely on the real event feed, plus if Judge Mode is on, we'll just show the scores.
 
   useEffect(() => {
+    setConnectionStatus('connecting');
     const es = new EventSource(`${SERVER_URL}/api/stream?appId=${appId}`);
     eventSource.current = es;
+
+    es.onopen = () => setConnectionStatus('open');
+    es.onerror = () => setConnectionStatus('closed');
 
     es.onmessage = (e) => {
       const payload = JSON.parse(e.data);
@@ -92,19 +102,31 @@ export default function DashboardClient({ appId, initialScores, initialEvents }:
 
       setEvents((prev) => [newEvent, ...prev].slice(0, 50));
       setEventCount((c) => c + 1);
-      refreshScores();
+      // Pass the current judge mode explicitly
+      refreshScores(isJudgeMode);
     };
 
     return () => {
       es.close();
     };
-  }, [appId, refreshScores]);
+  }, [appId, isJudgeMode, refreshScores]);
+
+  const handleJudgeModeToggle = async (checked: boolean) => {
+    setIsJudgeMode(checked);
+    if (checked) {
+      // Trigger the server seed script
+      try {
+        await fetch(`${SERVER_URL}/api/seed?appId=${appId}`, { method: 'POST' });
+      } catch (e) {}
+    }
+    refreshScores(checked);
+  };
 
   const handleGenerateRecommendation = async () => {
     setAiLoading(true);
     setAiText(null);
     try {
-      const res = await fetch(`${SERVER_URL}/api/recommendation?appId=${appId}`, {
+      const res = await fetch(`${SERVER_URL}/api/recommendation?appId=${appId}&includeSeeded=${isJudgeMode}`, {
         method: 'POST',
       });
       const data = await res.json();
@@ -140,14 +162,17 @@ export default function DashboardClient({ appId, initialScores, initialEvents }:
                 id="judge-mode-toggle"
                 type="checkbox"
                 checked={isJudgeMode}
-                onChange={(e) => setIsJudgeMode(e.target.checked)}
+                onChange={(e) => handleJudgeModeToggle(e.target.checked)}
                 style={{ accentColor: 'var(--accent)', width: '16px', height: '16px', cursor: 'pointer' }}
               />
               Judge Mode
             </label>
-            <div className="status-pill">
-              <span className="live-dot" />
-              {eventCount > 0 ? `${eventCount} events` : 'Live'}
+            <div className={`status-pill ${connectionStatus !== 'open' ? 'offline' : ''}`}>
+              <span className={`live-dot ${connectionStatus !== 'open' ? 'offline' : ''}`} />
+              {connectionStatus === 'open' 
+                ? (eventCount > 0 ? `${eventCount} events` : 'Live')
+                : (connectionStatus === 'connecting' ? 'Connecting...' : 'Offline')
+              }
             </div>
           </div>
         </nav>
@@ -206,9 +231,9 @@ export default function DashboardClient({ appId, initialScores, initialEvents }:
                     <thead>
                       <tr>
                         <th>Source</th>
-                        <th>Installs</th>
-                        <th>Activations</th>
-                        <th>Rate</th>
+                        <th style={{ textAlign: 'right' }}>Installs</th>
+                        <th style={{ textAlign: 'right' }}>Activations</th>
+                        <th style={{ textAlign: 'right' }}>Rate</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -222,11 +247,16 @@ export default function DashboardClient({ appId, initialScores, initialEvents }:
                       {scores.map((score, i) => (
                         <tr key={score.source} className={`rank-${i + 1}`}>
                           <td>
-                            <span className="source-badge">{score.source}</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              {i === 0 && <span title="Rank 1">🥇</span>}
+                              {i === 1 && <span title="Rank 2">🥈</span>}
+                              {i === 2 && <span title="Rank 3">🥉</span>}
+                              <span className="source-badge">{score.source}</span>
+                            </div>
                           </td>
-                          <td className="data-number">{score.installs}</td>
-                          <td className="data-number">{score.activations}</td>
-                          <td>
+                          <td className="data-number" style={{ textAlign: 'right' }}>{score.installs}</td>
+                          <td className="data-number" style={{ textAlign: 'right' }}>{score.activations}</td>
+                          <td style={{ textAlign: 'right' }}>
                             <div className="rate-bar-wrapper">
                               <div className="rate-bar">
                                 <div
@@ -234,7 +264,7 @@ export default function DashboardClient({ appId, initialScores, initialEvents }:
                                   style={{ width: score.activation_rate !== null ? `${score.activation_rate * 100}%` : '0%' }}
                                 />
                               </div>
-                              <span className="data-number">
+                              <span className="data-number" style={{ width: '40px', textAlign: 'right' }}>
                                 {score.activation_rate !== null
                                   ? `${(score.activation_rate * 100).toFixed(0)}%`
                                   : '—'}
@@ -250,16 +280,16 @@ export default function DashboardClient({ appId, initialScores, initialEvents }:
 
               {/* AI Recommendation */}
               <div className="ai-box">
-                <p className="ai-label">AI Recommendation</p>
+                <p className="ai-label">AI RECOMMENDATION</p>
                 {aiText ? (
                   <>
-                    <p className="ai-text" style={{ marginBottom: '12px' }}>{aiText}</p>
+                    <p className="ai-text" style={{ marginBottom: '12px', color: 'var(--ink)' }}>{aiText}</p>
                     <p style={{ fontFamily: 'var(--font-body)', fontSize: '11px', color: 'var(--ink-muted)' }}>
                       Generated from live data · claude-opus-4-5
                     </p>
                   </>
                 ) : (
-                  <p className="body-text" style={{ marginBottom: '16px', fontSize: '14px' }}>
+                  <p className="body-text" style={{ marginBottom: '16px', fontSize: '14px', color: 'var(--ink-muted)' }}>
                     {aiLoading ? 'Generating...' : 'Click to generate an insight from the current activation data.'}
                   </p>
                 )}
@@ -280,9 +310,9 @@ export default function DashboardClient({ appId, initialScores, initialEvents }:
             <div>
               <div className="section-header">
                 <span className="section-title">Live Events</span>
-                <div className="status-pill" style={{ fontSize: '11px', padding: '4px 10px' }}>
-                  <span className="live-dot" />
-                  Live
+                <div className={`status-pill ${connectionStatus !== 'open' ? 'offline' : ''}`} style={{ fontSize: '11px', padding: '4px 10px' }}>
+                  <span className={`live-dot ${connectionStatus !== 'open' ? 'offline' : ''}`} />
+                  {connectionStatus === 'open' ? 'Live' : 'Offline'}
                 </div>
               </div>
               <div className="data-table-wrapper">
