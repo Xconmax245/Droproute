@@ -72,7 +72,7 @@ export default function DashboardClient({ appId, initialScores, initialEvents }:
       const data = await res.json();
       setScores(data.scores ?? []);
     } catch {}
-  }, [appId, isJudgeMode]);
+  }, [appId]);
 
   // Load initial events for Judge Mode (mocking fetching seeded events from the DB)
   // Since our /api/scores brings seeded scores, we could optionally fetch seeded events.

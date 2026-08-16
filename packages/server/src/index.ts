@@ -247,8 +247,11 @@ app.post('/api/events', async (request, reply) => {
   return reply.send({ ok: true });
 });
 
-// GET /api/scores?appId=&includeSeeded=
+// GET /api/scores?appId=
 app.get('/api/scores', async (request, reply) => {
+  const { appId } = request.query as { appId?: string };
+  if (!appId) return reply.status(400).send({ error: 'appId query param required' });
+
   // Get all referral links for this app
   const { data: validLinks } = await supabase
     .from('referral_links')
@@ -280,7 +283,7 @@ app.get('/api/scores', async (request, reply) => {
 
   // Group by source
   const sourceMap: Record<string, { codes: Set<string>; activatedCodes: Set<string> }> = {};
-  for (const link of links) {
+  for (const link of validLinks) {
     if (!sourceMap[link.source]) {
       sourceMap[link.source] = { codes: new Set(), activatedCodes: new Set() };
     }
