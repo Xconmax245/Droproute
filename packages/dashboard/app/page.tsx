@@ -21,8 +21,7 @@ export default function LandingPage() {
           dr<span className="wordmark-dot" />proute
         </span>
         <div className="nav-links">
-          <Link href="/docs" className="nav-link">Docs</Link>
-          <Link href="/pricing" className="nav-link">Pricing</Link>
+          <a href="https://github.com/Xconmax245/Droproute" className="nav-link" target="_blank" rel="noopener noreferrer">GitHub</a>
         </div>
         <Link href="/dashboard" style={{ textDecoration: 'none' }}>
           <motion.span 
@@ -47,11 +46,11 @@ export default function LandingPage() {
         <div className="hero-cta-row" data-aos="fade-up" data-aos-delay="200" style={{ justifyContent: 'center' }}>
           <button className="btn-primary" onClick={handleCopy} style={{ fontSize: '18px', padding: '16px 32px' }}>
             <span style={{ fontFamily: 'monospace', opacity: 0.7 }}>&gt;_</span>
-            {copied ? 'Copied' : 'npx droproute inject'}
+            {copied ? '✓ Copied!' : 'npx droproute inject'}
           </button>
-          <a href="https://youtu.be/dQw4w9WgXcQ" className="btn-secondary" style={{ fontSize: '18px', padding: '16px 32px' }} target="_blank" rel="noopener noreferrer">
-            Watch Video
-          </a>
+          <Link href="/dashboard" className="btn-secondary" style={{ fontSize: '18px', padding: '16px 32px' }}>
+            Live Dashboard
+          </Link>
         </div>
       </section>
 
@@ -138,74 +137,47 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
-      {/* Testimonials */}
-      <section className="testimonials" data-aos="fade-up" style={{ marginBottom: '120px', textAlign: 'center' }}>
-        <h2 className="display-headline" style={{ fontSize: '32px', marginBottom: '48px' }}>Loved by growth engineers</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px', textAlign: 'left' }}>
-          <div className="card" style={{ background: 'white' }}>
-            <p style={{ fontSize: '16px', lineHeight: 1.6, marginBottom: '24px', color: 'var(--ink)' }}>"DropRoute saved us weeks of attribution engineering. We went from zero tracking to a fully functioning creator referral program in one afternoon."</p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: '40px', height: '40px', borderRadius: '20px', background: 'linear-gradient(135deg, #fca5a5, #f87171)' }} />
-              <div>
-                <div style={{ fontWeight: 600 }}>Sarah Chen</div>
-                <div style={{ fontSize: '14px', color: 'var(--ink-muted)' }}>Lead Engineer @ FitLife</div>
-              </div>
-            </div>
-          </div>
-          <div className="card" style={{ background: 'white' }}>
-            <p style={{ fontSize: '16px', lineHeight: 1.6, marginBottom: '24px', color: 'var(--ink)' }}>"The AST injection is black magic. I ran the command and my Expo router was perfectly wired up. The dashboard is just icing on the cake."</p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: '40px', height: '40px', borderRadius: '20px', background: 'linear-gradient(135deg, #93c5fd, #3b82f6)' }} />
-              <div>
-                <div style={{ fontWeight: 600 }}>Marcus Doe</div>
-                <div style={{ fontSize: '14px', color: 'var(--ink-muted)' }}>Founder @ NativeStack</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* FAQ Accordion */}
-      <section className="faq-section" data-aos="fade-up">
+      <section className="faq-section" data-aos="fade-up" style={{ marginBottom: '80px' }}>
         <h2 className="faq-title">Frequently Asked Questions</h2>
         <details className="faq-item" open>
           <summary>Does this actually edit my code?</summary>
           <div className="faq-content">
-            Yes. DropRoute uses AST transformations to parse your Expo router files, intelligently locate your root layout and main screens, and inject the necessary hooks to capture referral data and report events. It doesn't break your existing components.
+            Yes. DropRoute uses AST transformations (via ts-morph) to parse your Expo Router files, locate your root layout and main screens, and inject the necessary hooks. It never uses regex or string replacement — only semantic, inspectable AST edits.
           </div>
         </details>
         <details className="faq-item">
-          <summary>Is this just a dashboard or a real SDK?</summary>
+          <summary>Can I see what it will do before committing?</summary>
           <div className="faq-content">
-            It's a full pipeline. The CLI injects a lightweight SDK directly into your app. The SDK talks to our highly optimized edge backend, which in turn powers the live dashboard you see when you visit `/dashboard`.
+            Run <code>npx droproute inject --dry-run</code> to see a full diff of every change before a single file is written. You are always in control.
           </div>
         </details>
         <details className="faq-item">
           <summary>Can I undo the injection?</summary>
           <div className="faq-content">
-            Because we use standard Git workflows, you can always review the AST modifications with `git diff` and revert if needed. You are always in control of your source code.
+            Yes. The CLI requires a clean git working tree before injecting, so you can always <code>git diff</code> to review, or <code>git checkout .</code> to revert instantly.
+          </div>
+        </details>
+        <details className="faq-item">
+          <summary>What frameworks does this support?</summary>
+          <div className="faq-content">
+            DropRoute currently supports Expo Router projects using TypeScript. It detects the router version and validates the project structure before doing anything.
           </div>
         </details>
       </section>
 
-      {/* Email Signup */}
-      <section className="signup-section" data-aos="zoom-in">
-        <h2 className="signup-title">Stop guessing where your users come from.</h2>
-        <p className="signup-desc">Join top React Native teams building viral growth loops. Get early access to unlimited AI recommendations and custom domains.</p>
-        <div className="signup-form">
-          <input type="email" placeholder="Enter your email" className="signup-input" />
-          <button className="signup-btn">Get Early Access</button>
-        </div>
-      </section>
-
       {/* Footer */}
-      <footer className="footer-row">
+      <footer className="footer-row" style={{ marginBottom: '48px' }}>
         <div className="footer-left">
           <span className="wordmark" style={{ fontSize: '16px' }}>
             dr<span className="wordmark-dot" style={{ width: '6px', height: '6px' }} />proute
           </span>
           <span className="footer-license">MIT License</span>
         </div>
+        <a href="https://github.com/Xconmax245/Droproute" className="nav-link" target="_blank" rel="noopener noreferrer" style={{ fontSize: '14px' }}>
+          View on GitHub →
+        </a>
       </footer>
     </main>
   );
