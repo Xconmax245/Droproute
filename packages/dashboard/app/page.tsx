@@ -8,7 +8,7 @@ export default function LandingPage() {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText('npx droproute inject');
+    navigator.clipboard.writeText('node packages/cli/dist/index.js inject');
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
@@ -46,7 +46,7 @@ export default function LandingPage() {
         <div className="hero-cta-row" data-aos="fade-up" data-aos-delay="200" style={{ justifyContent: 'center' }}>
           <button className="btn-primary" onClick={handleCopy} style={{ fontSize: '18px', padding: '16px 32px' }}>
             <span style={{ fontFamily: 'monospace', opacity: 0.7 }}>&gt;_</span>
-            {copied ? '✓ Copied!' : 'npx droproute inject'}
+            {copied ? '✓ Copied!' : 'node packages/cli/dist/index.js inject'}
           </button>
           <Link href="/dashboard" className="btn-secondary" style={{ fontSize: '18px', padding: '16px 32px' }}>
             Live Dashboard
@@ -150,7 +150,7 @@ export default function LandingPage() {
         <details className="faq-item">
           <summary>Can I see what it will do before committing?</summary>
           <div className="faq-content">
-            Run <code>npx droproute inject --dry-run</code> to see a full diff of every change before a single file is written. You are always in control.
+            Run <code>node packages/cli/dist/index.js inject --dry-run</code> to see a full diff of every change before a single file is written. You are always in control.
           </div>
         </details>
         <details className="faq-item">
