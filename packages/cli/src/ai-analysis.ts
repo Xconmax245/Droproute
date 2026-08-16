@@ -68,7 +68,7 @@ The rootLayoutPath and firstScreenPath must be exactly as shown in the template 
 
   async function attempt(): Promise<InjectionPlan> {
     const completion = await openrouter.chat.completions.create({
-      model: 'anthropic/claude-opus-4-5',
+      model: 'meta-llama/llama-3.3-70b-instruct:free',
       max_tokens: 400,
       messages: [{ role: 'user', content: prompt }],
     });

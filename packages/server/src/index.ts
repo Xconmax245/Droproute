@@ -353,7 +353,7 @@ In 1-2 short, specific sentences, compare the sources using the actual numbers a
   let text: string;
   try {
     const completion = await openrouter.chat.completions.create({
-      model: 'anthropic/claude-opus-4-5',
+      model: 'meta-llama/llama-3.3-70b-instruct:free',
       max_tokens: 150,
       messages: [{ role: 'user', content: prompt }],
     });
@@ -366,7 +366,7 @@ In 1-2 short, specific sentences, compare the sources using the actual numbers a
   return reply.send({
     text,
     generatedFrom: 'live data',
-    model: 'anthropic/claude-opus-4-5 via OpenRouter',
+    model: 'meta-llama/llama-3.3-70b-instruct:free via OpenRouter',
     dataSnapshot: scores,
   });
 });

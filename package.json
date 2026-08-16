@@ -12,5 +12,9 @@
   },
   "devDependencies": {
     "pg": "^8.23.0"
+  },
+  "dependencies": {
+    "node-fetch": "^2.7.0",
+    "qrcode-terminal": "^0.12.0"
   }
 }
