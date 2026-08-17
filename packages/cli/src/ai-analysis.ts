@@ -68,7 +68,7 @@ The rootLayoutPath and firstScreenPath must be exactly as shown in the template 
 
   async function attempt(): Promise<InjectionPlan> {
     const completion = await openrouter.chat.completions.create({
-      model: 'google/gemma-2-9b-it:free',
+      model: 'openrouter/free',
       max_tokens: 400,
       messages: [{ role: 'user', content: prompt }],
     });
@@ -110,12 +110,12 @@ The rootLayoutPath and firstScreenPath must be exactly as shown in the template 
     try {
       return await attempt();
     } catch (secondError) {
-      console.warn(`\nWarning: AI endpoints unavailable (${(secondError as any).message?.slice(0, 50)}...). Falling back to static heuristic analysis.`);
+      console.warn(`\n⚠ AI analysis unavailable, using structural heuristic instead.`);
       return {
         rootLayoutPath: heuristicRootLayoutPath,
         firstScreenPath: heuristicFirstScreenPath,
         hasExistingConditional: false,
-        rationale: "Detected root layout for global context and index.tsx as the primary entry point for deep link routing."
+        rationale: "Structural heuristic fallback (AI analysis unavailable)"
       };
     }
   }

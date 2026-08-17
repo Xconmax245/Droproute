@@ -353,20 +353,20 @@ In 1-2 short, specific sentences, compare the sources using the actual numbers a
   let text: string;
   try {
     const completion = await openrouter.chat.completions.create({
-      model: 'google/gemma-2-9b-it:free',
+      model: 'openrouter/free',
       max_tokens: 150,
       messages: [{ role: 'user', content: prompt }],
     });
-    text = completion.choices[0]?.message?.content ?? '';
-  } catch (err: any) {
-    app.log.error(err);
-    return reply.status(500).send({ error: 'AI recommendation failed' });
+    text = completion.choices[0]?.message?.content || 'AI recommendation unavailable right now.';
+  } catch (e: any) {
+    console.error('OpenRouter error, falling back to heuristic:', e.message);
+    text = "AI recommendation unavailable right now.";
   }
 
   return reply.send({
     text,
     generatedFrom: 'live data',
-    model: 'google/gemma-2-9b-it:free via OpenRouter',
+    model: 'openrouter/free',
     dataSnapshot: scores,
   });
 });
